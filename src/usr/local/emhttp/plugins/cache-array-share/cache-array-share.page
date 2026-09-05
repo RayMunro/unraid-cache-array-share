@@ -1,0 +1,144 @@
+Menu="Utilities"
+Title="Cache → Array Share Control"
+Tag="exchange-alt"
+---
+<?PHP
+$var = is_file('/var/local/emhttp/var.ini') ? (parse_ini_file('/var/local/emhttp/var.ini') ?: []) : [];
+$csrf = (string)($var['csrf_token'] ?? '');
+?>
+
+<style>
+.cas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 20px}
+.cas-card{padding:16px;border:1px solid var(--gray-300,#bbb);border-radius:6px;background:var(--gray-100,rgba(127,127,127,.06))}
+.cas-number{display:block;font-size:2rem;line-height:1.1;font-weight:600}.cas-label{opacity:.75}
+.cas-controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:18px 0}.cas-field{min-width:220px}
+.cas-field label{display:block;font-weight:600;margin-bottom:5px}.cas-field select{width:100%}
+.cas-warning{border-left:4px solid #ff8c2f;padding:10px 14px;margin:14px 0;background:rgba(255,140,47,.08)}
+.cas-good{color:#2a9d55}.cas-bad{color:#d14b42}.cas-muted{opacity:.65}.cas-sensitive{color:#c66b13}
+.cas-table{width:100%;margin-top:16px}.cas-table td,.cas-table th{text-align:left;padding:8px}.cas-table th{border-bottom:1px solid var(--gray-400,#999)}
+.cas-table th:first-child,.cas-table td:first-child{width:44px;text-align:center}.cas-status{white-space:pre-wrap;margin:12px 0;min-height:1.5em}
+.cas-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.cas-preview{font-weight:600}
+</style>
+
+<div class="cas-grid">
+  <div class="cas-card"><span id="cas-total" class="cas-number">–</span><span class="cas-label">User shares</span></div>
+  <div class="cas-card"><span id="cas-configured" class="cas-number cas-good">–</span><span class="cas-label">Already Pool → Array</span></div>
+  <div class="cas-card"><span id="cas-selected" class="cas-number">0</span><span class="cas-label">Selected</span></div>
+  <div class="cas-card"><span id="cas-pools" class="cas-number">–</span><span class="cas-label">Available pools</span></div>
+</div>
+
+<p>Select only the shares you want to change. New files will be written to the chosen pool first; Unraid's scheduled Mover will later transfer them to the Array.</p>
+
+<div class="cas-warning">
+  This changes share policy only. It does not move files immediately and it never starts Mover. Service-sensitive shares such as <strong>appdata</strong>, <strong>domains</strong>, and <strong>system</strong> are marked so they are not changed accidentally.
+</div>
+
+<div class="cas-controls">
+  <div class="cas-field">
+    <label for="cas-pool">Primary storage pool</label>
+    <select id="cas-pool"><option value="">Loading…</option></select>
+  </div>
+  <div class="cas-preview">Target: <span id="cas-target">–</span></div>
+</div>
+
+<div class="cas-actions">
+  <input type="button" id="cas-all" value="Select all">
+  <input type="button" id="cas-none" value="Select none">
+  <input type="button" id="cas-apply" value="Apply Pool → Array to selected" disabled>
+  <input type="button" id="cas-restore" value="Restore last change" disabled>
+</div>
+
+<div id="cas-status" class="cas-status"></div>
+
+<table class="cas-table">
+  <thead><tr><th></th><th>Share</th><th>Current storage policy</th><th>After applying</th><th>Note</th></tr></thead>
+  <tbody id="cas-rows"><tr><td colspan="5">Loading…</td></tr></tbody>
+</table>
+
+<script>
+(function(){
+  const endpoint = '/plugins/cache-array-share/api.php';
+  const csrfToken = <?=json_encode($csrf, JSON_UNESCAPED_SLASHES)?>;
+  let state = null;
+  let busy = false;
+
+  function html(value) { return $('<div>').text(value == null ? '' : value).html(); }
+  function selectedNames() { return $('.cas-share:checked').map(function(){return this.value;}).get(); }
+  function targetLabel() { const pool=$('#cas-pool').val(); return pool ? pool+' → Array' : '–'; }
+  function show(message, error) {
+    $('#cas-status').text(message || '').toggleClass('cas-bad', !!error).toggleClass('cas-good', !error && !!message);
+  }
+  function updateSelection() {
+    const count=selectedNames().length;
+    $('#cas-selected').text(count);
+    $('#cas-target').text(targetLabel());
+    $('.cas-after').text(targetLabel());
+    $('#cas-apply').prop('disabled', busy || count===0 || !$('#cas-pool').val());
+  }
+  function setBusy(value) {
+    busy=value;
+    $('#cas-all,#cas-none,#cas-pool,.cas-share').prop('disabled', value);
+    $('#cas-restore').prop('disabled', value || !state || !state.can_restore);
+    updateSelection();
+  }
+  function render(data) {
+    state=data;
+    $('#cas-total').text(data.counts.total);
+    $('#cas-configured').text(data.counts.configured);
+    $('#cas-pools').text(data.counts.pools);
+
+    const previous=$('#cas-pool').val();
+    let options='';
+    data.pools.forEach(function(pool){options+='<option value="'+html(pool)+'">'+html(pool)+'</option>';});
+    $('#cas-pool').html(options || '<option value="">No pools found</option>');
+    if (previous && data.pools.indexOf(previous)!==-1) $('#cas-pool').val(previous);
+    else if (data.pools.indexOf('cache')!==-1) $('#cas-pool').val('cache');
+
+    let rows='';
+    data.shares.forEach(function(share){
+      const note=share.sensitive ? '<span class="cas-sensitive">⚠ Service-sensitive</span>' : '';
+      rows+='<tr><td><input class="cas-share" type="checkbox" value="'+html(share.name)+'"></td>'+
+        '<td><strong>'+html(share.name)+'</strong></td><td class="'+(share.pool_to_array?'cas-good':'')+'">'+html(share.current_label)+'</td>'+
+        '<td class="cas-after">'+html(targetLabel())+'</td><td>'+note+'</td></tr>';
+    });
+    $('#cas-rows').html(rows || '<tr><td colspan="5">No user shares were found.</td></tr>');
+    $('#cas-restore').prop('disabled', busy || !data.can_restore).val(data.can_restore?'Restore last change':'No change to restore');
+    updateSelection();
+  }
+  function refresh(keepMessage) {
+    $.getJSON(endpoint,{action:'status'}).done(function(response){
+      if (!response.ok) {show(response.error||'Unable to read share status.',true);return;}
+      render(response.data);if(!keepMessage)show('');
+    }).fail(function(xhr){show((xhr.responseJSON&&xhr.responseJSON.error)||'Unable to read share status.',true);});
+  }
+  function applySelected() {
+    const names=selectedNames(), pool=$('#cas-pool').val();
+    if (!names.length || !pool || busy) return;
+    const sensitive=names.filter(function(name){return ['appdata','domains','system'].indexOf(name.toLowerCase())!==-1;});
+    let prompt='Change '+names.length+' selected share(s) to '+pool+' → Array? A backup will be created first. Mover will not be started.';
+    if (sensitive.length) prompt+='\n\nService-sensitive selection: '+sensitive.join(', ')+'.';
+    if (!confirm(prompt)) return;
+    setBusy(true);show('Applying and verifying share settings…');
+    $.ajax({url:endpoint,method:'POST',dataType:'json',data:{action:'apply',pool:pool,shares:names,csrf_token:csrfToken}})
+      .done(function(response){if(!response.ok){show(response.error||'The action failed.',true);return;}show(response.message||'Done.');})
+      .fail(function(xhr){show((xhr.responseJSON&&xhr.responseJSON.error)||'The action failed.',true);})
+      .always(function(){setBusy(false);refresh(true);});
+  }
+  function restore() {
+    if (busy || !state || !state.can_restore || !confirm('Restore the storage policies from the most recent bulk change?')) return;
+    setBusy(true);show('Restoring and verifying share settings…');
+    $.post(endpoint,{action:'restore',csrf_token:csrfToken},null,'json')
+      .done(function(response){if(!response.ok){show(response.error||'Restore failed.',true);return;}show(response.message||'Restored.');})
+      .fail(function(xhr){show((xhr.responseJSON&&xhr.responseJSON.error)||'Restore failed.',true);})
+      .always(function(){setBusy(false);refresh(true);});
+  }
+
+  $(document).on('change','.cas-share',updateSelection);
+  $('#cas-pool').on('change',updateSelection);
+  $('#cas-all').on('click',function(){$('.cas-share').prop('checked',true);updateSelection();});
+  $('#cas-none').on('click',function(){$('.cas-share').prop('checked',false);updateSelection();});
+  $('#cas-apply').on('click',applySelected);
+  $('#cas-restore').on('click',restore);
+  refresh(false);
+})();
+</script>

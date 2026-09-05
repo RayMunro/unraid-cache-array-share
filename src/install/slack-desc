@@ -1,0 +1,12 @@
+cache-array-share: cache-array-share (selected share cache to array control)
+cache-array-share:
+cache-array-share: Adds a User Utilities page for changing selected Unraid user
+cache-array-share: shares to a chosen cache pool as Primary storage, Array as
+cache-array-share: Secondary storage, and Pool to Array as the Mover action.
+cache-array-share:
+cache-array-share: Includes preview-first selection, timestamped backups,
+cache-array-share: verification, rollback, and one-click restore. Mover is never
+cache-array-share: started automatically.
+cache-array-share:
+cache-array-share: Author: Ray Munro
+cache-array-share: License: MIT

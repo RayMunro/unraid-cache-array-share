@@ -1,0 +1,16 @@
+<Plugin>
+  <!-- Required fields -->
+  <Name>Cache -&gt; Array Share Control</Name>
+  <Overview>Changes only the user shares you select to a chosen primary pool (normally cache), secondary storage Array, and Mover action Pool -&gt; Array, using Unraid's native /update.htm share-update interface. Creates a timestamped backup before every batch, verifies every applied change, rolls back completed changes if a later share fails, and can restore the most recent un-restored batch. Never runs Mover automatically.</Overview>
+  <!-- NOTE: PluginURL must match exactly the URL of the pluginURL attribute in the .plg file -->
+  <PluginURL>https://raw.githubusercontent.com/RayMunro/unraid-cache-array-share/main/cache-array-share.plg</PluginURL>
+  <PluginAuthor>Ray Munro</PluginAuthor>
+
+  <!-- Optional entries -->
+  <!-- The .plg file already sets the support attribute, so <Support> here is ignored, left out to avoid duplication -->
+  <Project>https://github.com/RayMunro/unraid-cache-array-share</Project>
+  <ReadMe>https://raw.githubusercontent.com/RayMunro/unraid-cache-array-share/main/README.md</ReadMe>
+  <Category>Tools:</Category>
+  <MinVer>6.12.0</MinVer>
+  <License>MIT</License>
+</Plugin>
