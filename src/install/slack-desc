@@ -9,4 +9,4 @@ cache-array-share: verification, rollback, and one-click restore. Mover is never
 cache-array-share: started automatically.
 cache-array-share:
 cache-array-share: Author: Ray Munro
-cache-array-share: License: MIT
+cache-array-share: License: GPL-3.0-or-later

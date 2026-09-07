@@ -13,5 +13,5 @@
   <Category>Tools:</Category>
   <MinVer>6.12.0</MinVer>
   <Icon>https://raw.githubusercontent.com/RayMunro/unraid-cache-array-share/main/src/usr/local/emhttp/plugins/cache-array-share/icons/cache-array-share.png</Icon>
-  <License>MIT</License>
+  <License>GPL-3.0-or-later</License>
 </Plugin>

@@ -79,4 +79,4 @@ php tests/run.php
 
 Author: Raymond Munro  
 Copyright © Raymond Munro 2026  
-License: MIT
+License: GPL-3.0-or-later
