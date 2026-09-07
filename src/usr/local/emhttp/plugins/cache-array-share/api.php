@@ -1,4 +1,5 @@
 <?php
+// Copyright (c) 2026 Raymond Munro
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -17,10 +18,13 @@ try {
     $action = (string)($_REQUEST['action'] ?? 'status');
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        if ($action !== 'status') {
-            respond(['ok' => false, 'error' => 'Unsupported request.'], 405);
+        if ($action === 'status') {
+            respond(['ok' => true, 'data' => $controller->status()]);
         }
-        respond(['ok' => true, 'data' => $controller->status()]);
+        if ($action === 'job_status') {
+            respond(['ok' => true, 'data' => $controller->jobStatus((string)($_GET['job'] ?? ''))]);
+        }
+        respond(['ok' => false, 'error' => 'Unsupported request.'], 405);
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -29,14 +33,42 @@ try {
 
     switch ($action) {
         case 'apply':
-            $shares = $_POST['shares'] ?? [];
-            if (!is_array($shares)) {
-                $shares = [$shares];
+            $cacheShares = $_POST['cache_shares'] ?? ($_POST['shares'] ?? []);
+            $cacheOnlyShares = $_POST['cache_only_shares'] ?? [];
+            $noCacheShares = $_POST['no_cache_shares'] ?? [];
+            $forceShares = $_POST['force_shares'] ?? [];
+            if (!is_array($cacheShares)) {
+                $cacheShares = [$cacheShares];
             }
-            $result = $controller->applySelection($shares, (string)($_POST['pool'] ?? ''));
+            if (!is_array($noCacheShares)) {
+                $noCacheShares = [$noCacheShares];
+            }
+            if (!is_array($cacheOnlyShares)) {
+                $cacheOnlyShares = [$cacheOnlyShares];
+            }
+            if (!is_array($forceShares)) {
+                $forceShares = [$forceShares];
+            }
+            if ($noCacheShares) {
+                $result = $controller->startPolicyJob($cacheShares, $noCacheShares, (string)($_POST['pool'] ?? ''), $forceShares, $cacheOnlyShares);
+                respond([
+                    'ok' => true,
+                    'message' => 'Mover safety operation started. Only Array-only shares are checked for pool leftovers; Cache-only shares are excluded from that check and applied afterward.',
+                    'result' => $result,
+                ]);
+            }
+
+            $result = $controller->applyPolicies($cacheShares, [], (string)($_POST['pool'] ?? ''), $cacheOnlyShares);
             $message = $result['changed'] === 0
-                ? 'The selected shares already use that Pool -> Array policy.'
-                : sprintf('%d share(s) changed. Backup: %s', $result['changed'], $result['backup']);
+                ? 'The selected shares already use the requested storage policies.'
+                : sprintf(
+                    '%d share(s) changed: %d Cache -> Array, %d Cache only, %d Array-only. Backup: %s',
+                    $result['changed'],
+                    $result['changed_cache'],
+                    $result['changed_cache_only'],
+                    $result['changed_no_cache'],
+                    $result['backup']
+                );
             respond(['ok' => true, 'message' => $message, 'result' => $result]);
 
         case 'restore':

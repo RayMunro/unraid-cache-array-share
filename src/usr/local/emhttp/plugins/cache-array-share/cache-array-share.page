@@ -1,8 +1,9 @@
 Menu="Utilities"
-Title="Cache → Array Share Control"
-Tag="exchange-alt"
+Title="Cache / Array Share Control"
+Tag="cache-array-share.png"
 ---
 <?PHP
+// Copyright (c) 2026 Raymond Munro
 $var = is_file('/var/local/emhttp/var.ini') ? (parse_ini_file('/var/local/emhttp/var.ini') ?: []) : [];
 $csrf = (string)($var['csrf_token'] ?? '');
 ?>
@@ -16,43 +17,50 @@ $csrf = (string)($var['csrf_token'] ?? '');
 .cas-warning{border-left:4px solid #ff8c2f;padding:10px 14px;margin:14px 0;background:rgba(255,140,47,.08)}
 .cas-good{color:#2a9d55}.cas-bad{color:#d14b42}.cas-muted{opacity:.65}.cas-sensitive{color:#c66b13}
 .cas-table{width:100%;margin-top:16px}.cas-table td,.cas-table th{text-align:left;padding:8px}.cas-table th{border-bottom:1px solid var(--gray-400,#999)}
-.cas-table th:first-child,.cas-table td:first-child{width:44px;text-align:center}.cas-status{white-space:pre-wrap;margin:12px 0;min-height:1.5em}
+.cas-table .cas-check{text-align:center;width:150px}.cas-table input[type=checkbox]{transform:scale(1.15);margin-right:7px}.cas-option{display:inline-flex;align-items:center;justify-content:center;font-weight:600;cursor:pointer}.cas-force-option{font-weight:600;color:#b54f00}.cas-status{white-space:pre-wrap;margin:12px 0;min-height:1.5em}
 .cas-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.cas-preview{font-weight:600}
+.cas-copyright{margin:8px 0 22px;padding:16px 20px;border:2px solid #ff8c2f;border-radius:7px;background:rgba(255,140,47,.12);text-align:center;font-size:1.25rem;font-weight:700;letter-spacing:.02em}
 </style>
 
 <div class="cas-grid">
   <div class="cas-card"><span id="cas-total" class="cas-number">–</span><span class="cas-label">User shares</span></div>
   <div class="cas-card"><span id="cas-configured" class="cas-number cas-good">–</span><span class="cas-label">Already Pool → Array</span></div>
   <div class="cas-card"><span id="cas-selected" class="cas-number">0</span><span class="cas-label">Selected</span></div>
-  <div class="cas-card"><span id="cas-pools" class="cas-number">–</span><span class="cas-label">Available pools</span></div>
+  <div class="cas-card"><span id="cas-cache-only" class="cas-number">–</span><span class="cas-label">Already Cache only</span></div>
+  <div class="cas-card"><span id="cas-no-cache" class="cas-number">–</span><span class="cas-label">Already Array only</span></div>
 </div>
 
-<p>Select only the shares you want to change. New files will be written to the chosen pool first; Unraid's scheduled Mover will later transfer them to the Array.</p>
+<div class="cas-copyright">Copyright © Raymond Munro 2026</div>
+
+<p>Tick one action for each share you want to change. <strong>Cache → Array</strong> writes new files to the chosen pool first. <strong>Cache only</strong> keeps new files on the chosen pool. <strong>Array only</strong> writes new files directly to the Array.</p>
 
 <div class="cas-warning">
-  This changes share policy only. It does not move files immediately and it never starts Mover. Service-sensitive shares such as <strong>appdata</strong>, <strong>domains</strong>, and <strong>system</strong> are marked so they are not changed accidentally.
+  Choosing <strong>Array only</strong> starts Unraid's global Mover first and waits for it to finish. The plugin verifies that only the shares selected as Array only contain no files on any pool before applying Array-only. Shares selected as <strong>Cache only</strong> are deliberately excluded from that post-Mover check and Cache only is applied afterward. If files remain for an Array-only share, Array-only is not applied unless <strong>Force remaining</strong> was explicitly ticked for that share. System-dependent shares such as <strong>appdata</strong>, <strong>domains</strong>, <strong>system</strong>, and <strong>isos</strong> are excluded from every Select all button; stop Docker or VMs before selecting one manually.
 </div>
 
 <div class="cas-controls">
   <div class="cas-field">
-    <label for="cas-pool">Primary storage pool</label>
+    <label for="cas-pool">Cache pool / pool to empty</label>
     <select id="cas-pool"><option value="">Loading…</option></select>
   </div>
-  <div class="cas-preview">Target: <span id="cas-target">–</span></div>
+  <div class="cas-preview">Cache target: <span id="cas-target">–</span></div>
 </div>
 
 <div class="cas-actions">
-  <input type="button" id="cas-all" value="Select all">
-  <input type="button" id="cas-none" value="Select none">
-  <input type="button" id="cas-apply" value="Apply Pool → Array to selected" disabled>
+  <input type="button" id="cas-all-cache" value="Select all Cache → Array">
+  <input type="button" id="cas-all-cache-only" value="Select all Cache only">
+  <input type="button" id="cas-all-no-cache" value="Select all Array only">
+  <input type="button" id="cas-all-force" value="Force all selected Array-only" disabled>
+  <input type="button" id="cas-none" value="Clear all">
+  <input type="button" id="cas-apply" value="Apply selected policies" disabled>
   <input type="button" id="cas-restore" value="Restore last change" disabled>
 </div>
 
 <div id="cas-status" class="cas-status"></div>
 
 <table class="cas-table">
-  <thead><tr><th></th><th>Share</th><th>Current storage policy</th><th>After applying</th><th>Note</th></tr></thead>
-  <tbody id="cas-rows"><tr><td colspan="5">Loading…</td></tr></tbody>
+  <thead><tr><th>Share</th><th class="cas-check">Cache → Array</th><th class="cas-check">Cache only</th><th class="cas-check">Array only</th><th class="cas-check">Force leftovers</th><th>Current storage policy</th><th>After applying</th><th>Note</th></tr></thead>
+  <tbody id="cas-rows"><tr><td colspan="8">Loading…</td></tr></tbody>
 </table>
 
 <script>
@@ -61,23 +69,39 @@ $csrf = (string)($var['csrf_token'] ?? '');
   const csrfToken = <?=json_encode($csrf, JSON_UNESCAPED_SLASHES)?>;
   let state = null;
   let busy = false;
+  let pollingJob = null;
 
   function html(value) { return $('<div>').text(value == null ? '' : value).html(); }
-  function selectedNames() { return $('.cas-share:checked').map(function(){return this.value;}).get(); }
+  function cacheNames() { return $('.cas-cache:checked').map(function(){return this.value;}).get(); }
+  function cacheOnlyNames() { return $('.cas-cache-only:checked').map(function(){return this.value;}).get(); }
+  function noCacheNames() { return $('.cas-no-cache:checked').map(function(){return this.value;}).get(); }
+  function forceNames() { return $('.cas-force:checked').map(function(){return this.value;}).get(); }
   function targetLabel() { const pool=$('#cas-pool').val(); return pool ? pool+' → Array' : '–'; }
   function show(message, error) {
     $('#cas-status').text(message || '').toggleClass('cas-bad', !!error).toggleClass('cas-good', !error && !!message);
   }
   function updateSelection() {
-    const count=selectedNames().length;
+    const cache=cacheNames(), cacheOnly=cacheOnlyNames(), noCache=noCacheNames(), count=cache.length+cacheOnly.length+noCache.length;
     $('#cas-selected').text(count);
     $('#cas-target').text(targetLabel());
-    $('.cas-after').text(targetLabel());
-    $('#cas-apply').prop('disabled', busy || count===0 || !$('#cas-pool').val());
+    $('#cas-rows tr').each(function(){
+      const row=$(this), after=row.find('.cas-after');
+      const arrayOnly=!!row.find('.cas-no-cache').prop('checked');
+      const force=row.find('.cas-force');
+      if (!arrayOnly) force.prop('checked',false);
+      force.prop('disabled',busy || !arrayOnly);
+      if (row.find('.cas-cache').prop('checked')) after.text(targetLabel());
+      else if (row.find('.cas-cache-only').prop('checked')) after.text($('#cas-pool').val()?$('#cas-pool').val()+' only':'–');
+      else if (arrayOnly) after.text(force.prop('checked')?'Array only (force leftovers after Mover)':'Array only (after Mover)');
+      else after.text('Not selected');
+    });
+    const needsPool=(cache.length>0 || cacheOnly.length>0 || noCache.length>0) && state && state.counts.pools>0;
+    $('#cas-all-force').prop('disabled', busy || noCache.length===0);
+    $('#cas-apply').prop('disabled', busy || count===0 || (needsPool && !$('#cas-pool').val()));
   }
   function setBusy(value) {
     busy=value;
-    $('#cas-all,#cas-none,#cas-pool,.cas-share').prop('disabled', value);
+    $('#cas-all-cache,#cas-all-cache-only,#cas-all-no-cache,#cas-all-force,#cas-none,#cas-pool,.cas-choice,.cas-force').prop('disabled', value);
     $('#cas-restore').prop('disabled', value || !state || !state.can_restore);
     updateSelection();
   }
@@ -85,7 +109,8 @@ $csrf = (string)($var['csrf_token'] ?? '');
     state=data;
     $('#cas-total').text(data.counts.total);
     $('#cas-configured').text(data.counts.configured);
-    $('#cas-pools').text(data.counts.pools);
+    $('#cas-cache-only').text(data.counts.cache_only);
+    $('#cas-no-cache').text(data.counts.no_cache);
 
     const previous=$('#cas-pool').val();
     let options='';
@@ -96,14 +121,25 @@ $csrf = (string)($var['csrf_token'] ?? '');
 
     let rows='';
     data.shares.forEach(function(share){
-      const note=share.sensitive ? '<span class="cas-sensitive">⚠ Service-sensitive</span>' : '';
-      rows+='<tr><td><input class="cas-share" type="checkbox" value="'+html(share.name)+'"></td>'+
-        '<td><strong>'+html(share.name)+'</strong></td><td class="'+(share.pool_to_array?'cas-good':'')+'">'+html(share.current_label)+'</td>'+
-        '<td class="cas-after">'+html(targetLabel())+'</td><td>'+note+'</td></tr>';
+      const systemDependent=share.system_dependent?'1':'0';
+      const bulkSelectable=share.bulk_selectable?'1':'0';
+      const note=share.system_dependent ? '<span class="cas-sensitive">⚠ System-dependent — excluded from Select all</span>' : '';
+      rows+='<tr><td><strong>'+html(share.name)+'</strong></td>'+
+        '<td class="cas-check"><label class="cas-option"><input class="cas-choice cas-cache" type="checkbox" value="'+html(share.name)+'" data-system-dependent="'+systemDependent+'" data-bulk-selectable="'+bulkSelectable+'">Cache → Array</label></td>'+
+        '<td class="cas-check"><label class="cas-option"><input class="cas-choice cas-cache-only" type="checkbox" value="'+html(share.name)+'" data-system-dependent="'+systemDependent+'" data-bulk-selectable="'+bulkSelectable+'">Cache only</label></td>'+
+        '<td class="cas-check"><label class="cas-option"><input class="cas-choice cas-no-cache" type="checkbox" value="'+html(share.name)+'" data-system-dependent="'+systemDependent+'" data-bulk-selectable="'+bulkSelectable+'">Array only</label></td>'+
+        '<td class="cas-check"><label class="cas-option cas-force-option"><input class="cas-force" type="checkbox" value="'+html(share.name)+'" disabled>Force remaining</label></td>'+
+        '<td class="'+(share.pool_to_array?'cas-good':'')+'">'+html(share.current_label)+'</td>'+
+        '<td class="cas-after">Not selected</td><td>'+note+'</td></tr>';
     });
-    $('#cas-rows').html(rows || '<tr><td colspan="5">No user shares were found.</td></tr>');
+    $('#cas-rows').html(rows || '<tr><td colspan="8">No user shares were found.</td></tr>');
     $('#cas-restore').prop('disabled', busy || !data.can_restore).val(data.can_restore?'Restore last change':'No change to restore');
     updateSelection();
+    if (data.active_job && !pollingJob) {
+      setBusy(true);
+      show(data.active_job.message || 'Mover safety operation is running…');
+      pollJob(data.active_job.id);
+    }
   }
   function refresh(keepMessage) {
     $.getJSON(endpoint,{action:'status'}).done(function(response){
@@ -112,17 +148,41 @@ $csrf = (string)($var['csrf_token'] ?? '');
     }).fail(function(xhr){show((xhr.responseJSON&&xhr.responseJSON.error)||'Unable to read share status.',true);});
   }
   function applySelected() {
-    const names=selectedNames(), pool=$('#cas-pool').val();
-    if (!names.length || !pool || busy) return;
-    const sensitive=names.filter(function(name){return ['appdata','domains','system'].indexOf(name.toLowerCase())!==-1;});
-    let prompt='Change '+names.length+' selected share(s) to '+pool+' → Array? A backup will be created first. Mover will not be started.';
-    if (sensitive.length) prompt+='\n\nService-sensitive selection: '+sensitive.join(', ')+'.';
+    const cache=cacheNames(), cacheOnly=cacheOnlyNames(), noCache=noCacheNames(), force=forceNames(), names=cache.concat(cacheOnly,noCache), pool=$('#cas-pool').val();
+    const needsPool=state && state.counts.pools>0 && names.length>0;
+    if (!names.length || (needsPool && !pool) || busy) return;
+    const sensitive=$('.cas-choice:checked[data-system-dependent="1"]').map(function(){return this.value;}).get();
+    let prompt='Apply the selected policies to '+names.length+' share(s)?\n\nCache → Array: '+cache.length+(cache.length?' ('+pool+')':'')+'\nCache only: '+cacheOnly.length+(cacheOnly.length?' ('+pool+')':'')+'\nArray only: '+noCache.length+'\nForce remaining files: '+force.length+'\n\nA backup will be created first.';
+    if (noCache.length) prompt+='\n\nUnraid\'s global Mover will run before Array-only is applied. Cache-only shares are excluded from the post-Mover check and Cache only is applied afterward. This can move files for other shares too. The operation may take some time; you can leave this page and return.';
+    if (force.length) prompt+='\n\nWARNING: For the shares marked Force remaining, files left on a pool after Mover will be copied directly to /mnt/user0 and removed from the pool only after a successful copy. Stop Docker and VMs first so files cannot change during transfer.';
+    if (sensitive.length) prompt+='\n\nSystem-dependent selection: '+sensitive.join(', ')+'.';
     if (!confirm(prompt)) return;
-    setBusy(true);show('Applying and verifying share settings…');
-    $.ajax({url:endpoint,method:'POST',dataType:'json',data:{action:'apply',pool:pool,shares:names,csrf_token:csrfToken}})
-      .done(function(response){if(!response.ok){show(response.error||'The action failed.',true);return;}show(response.message||'Done.');})
+    setBusy(true);show(noCache.length?'Preparing the Mover safety operation…':'Applying and verifying share settings…');
+    let queued=false;
+    $.ajax({url:endpoint,method:'POST',dataType:'json',data:{action:'apply',pool:pool,cache_shares:cache,cache_only_shares:cacheOnly,no_cache_shares:noCache,force_shares:force,csrf_token:csrfToken}})
+      .done(function(response){
+        if(!response.ok){show(response.error||'The action failed.',true);return;}
+        show(response.message||'Done.');
+        if(response.result && response.result.queued){queued=true;pollJob(response.result.job);}
+      })
       .fail(function(xhr){show((xhr.responseJSON&&xhr.responseJSON.error)||'The action failed.',true);})
-      .always(function(){setBusy(false);refresh(true);});
+      .always(function(){if(!queued){setBusy(false);refresh(true);}});
+  }
+  function pollJob(jobId) {
+    if (pollingJob && pollingJob!==jobId) return;
+    pollingJob=jobId;
+    $.getJSON(endpoint,{action:'job_status',job:jobId}).done(function(response){
+      if(!response.ok){show(response.error||'Unable to read operation status.',true);pollingJob=null;setBusy(false);return;}
+      const job=response.data;
+      show(job.message||'Mover safety operation is running…',job.status==='failed');
+      if(job.terminal){
+        pollingJob=null;
+        setBusy(false);
+        refresh(true);
+      } else {
+        setTimeout(function(){pollJob(jobId);},2000);
+      }
+    }).fail(function(){setTimeout(function(){pollJob(jobId);},4000);});
   }
   function restore() {
     if (busy || !state || !state.can_restore || !confirm('Restore the storage policies from the most recent bulk change?')) return;
@@ -133,10 +193,17 @@ $csrf = (string)($var['csrf_token'] ?? '');
       .always(function(){setBusy(false);refresh(true);});
   }
 
-  $(document).on('change','.cas-share',updateSelection);
+  $(document).on('change','.cas-choice',function(){
+    if (this.checked) $(this).closest('tr').find('.cas-choice').not(this).prop('checked',false);
+    updateSelection();
+  });
+  $(document).on('change','.cas-force',updateSelection);
   $('#cas-pool').on('change',updateSelection);
-  $('#cas-all').on('click',function(){$('.cas-share').prop('checked',true);updateSelection();});
-  $('#cas-none').on('click',function(){$('.cas-share').prop('checked',false);updateSelection();});
+  $('#cas-all-cache').on('click',function(){$('.cas-choice,.cas-force').prop('checked',false);$('.cas-cache[data-bulk-selectable="1"]').prop('checked',true);updateSelection();});
+  $('#cas-all-cache-only').on('click',function(){$('.cas-choice,.cas-force').prop('checked',false);$('.cas-cache-only[data-bulk-selectable="1"]').prop('checked',true);updateSelection();});
+  $('#cas-all-no-cache').on('click',function(){$('.cas-choice,.cas-force').prop('checked',false);$('.cas-no-cache[data-bulk-selectable="1"]').prop('checked',true);updateSelection();});
+  $('#cas-all-force').on('click',function(){if(busy)return;$('.cas-no-cache:checked').closest('tr').find('.cas-force').prop('checked',true);updateSelection();});
+  $('#cas-none').on('click',function(){$('.cas-choice,.cas-force').prop('checked',false);updateSelection();});
   $('#cas-apply').on('click',applySelected);
   $('#cas-restore').on('click',restore);
   refresh(false);

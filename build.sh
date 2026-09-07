@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 NAME="cache-array-share"
-VERSION="2026.09.02a"
+VERSION="2026.09.07e"
 BUILD="$ROOT/build"
 PACKAGE="$NAME-$VERSION-noarch-1.txz"
 

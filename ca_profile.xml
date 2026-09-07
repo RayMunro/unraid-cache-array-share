@@ -1,7 +1,7 @@
 <CommunityApplications>
   <!-- Required profile -->
   <Profile>
-Cache -> Array Share Control changes only the user shares you select to a chosen primary pool (normally cache), secondary storage Array, and Mover action Pool -> Array, using Unraid's native share-update interface. It creates a timestamped backup before every batch, verifies every applied change, and can restore the most recent un-restored batch. This repository contains the single Cache -> Array Share Control plugin.
+Cache / Array Share Control gives every user share three explicit, mutually exclusive choices: Cache -> Array, Cache only, or Array only (which safely runs Mover first and verifies pools are clear, with an optional forced transfer for stubborn leftovers). It uses Unraid's native share-update interface, creates a timestamped backup before every batch, verifies every applied change, and can restore the most recent un-restored batch. This repository contains the single Cache / Array Share Control plugin.
 
 Support and bug reports: https://github.com/RayMunro/unraid-cache-array-share/issues
   </Profile>

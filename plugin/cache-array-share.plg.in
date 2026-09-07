@@ -1,15 +1,17 @@
 <?xml version="1.0" standalone="yes"?>
 
+<!-- Copyright (c) 2026 Raymond Munro -->
+
 <!DOCTYPE PLUGIN [
 <!ENTITY name "cache-array-share">
-<!ENTITY author "Ray Munro">
-<!ENTITY version "2026.09.02a">
+<!ENTITY author "Raymond Munro">
+<!ENTITY version "2026.09.07e">
 <!ENTITY package "&name;-&version;-noarch-1.txz">
 <!ENTITY github "RayMunro/unraid-cache-array-share">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="Settings/&name;" min="6.12.0"
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="Settings/&name;" icon="cache-array-share.png" min="6.12.0"
         pluginURL="&pluginURL;"
         support="https://github.com/&github;/issues"
         project="https://github.com/&github;"
@@ -17,6 +19,43 @@
 
 <CHANGES>
 <![CDATA[
+### 2026.09.07e
+- Add a Force all selected Array-only button for one-click force selection.
+- Add a custom Cache / Array Share Control icon to the page and Plugin Manager.
+
+### 2026.09.07d
+- Add a Cache only tickbox for every share and a system-safe Select all action.
+- Keep Cache only mutually exclusive with Cache -> Array and Array only.
+- Exclude Cache-only shares from the post-Mover remaining-files check.
+- Apply Cache-only policies only after Array-only shares pass verification.
+
+### 2026.09.07c
+- Add a Force remaining checkbox for every share selected as Array only.
+- After Mover, copy authorised leftovers directly to /mnt/user0 with rsync
+  and remove each pool file only after its copy succeeds.
+- Verify forced transfers before applying the final Array-only policy.
+- Display the Raymond Munro 2026 copyright in a prominent page banner.
+
+### 2026.09.07b
+- Present Cache -> Array and Array only as two explicit per-share choices.
+- Exclude system-dependent shares from both Select all actions.
+- Detect the standard appdata, domains, system and isos shares plus custom
+  shares referenced by Unraid Docker and VM configuration.
+- Add Copyright © Raymond Munro 2026 to the interface and source package.
+
+### 2026.09.07a
+- Run Unraid Mover before applying Array-only to any selected share.
+- Keep Array-only jobs running in the background and show live progress.
+- Temporarily set selected shares to Pool -> Array before Mover starts.
+- Verify all mounted pools are clear before applying Array-only.
+- Refuse the final policy safely when files remain on a pool.
+- Prevent one-click restore from reapplying the unsafe pre-Mover policy after a failed safety check.
+
+### 2026.09.07
+- Add separate Cache -> Array and No cache tickboxes for every share.
+- Keep the two choices mutually exclusive for each share.
+- Support mixed batches and clear both pool fields when No cache is selected.
+
 ### 2026.09.02a
 - Fix Apply and Restore requests being stopped by duplicate CSRF validation.
 - Rely on Unraid's built-in PHP request validation, which validates and then
@@ -47,13 +86,15 @@ PLUGIN_WEB="/usr/local/emhttp/plugins/cache-array-share"
 
 mkdir -p "$PLUGIN_BOOT/backups"
 chmod 0700 "$PLUGIN_BOOT/backups"
+mkdir -p "/var/local/emhttp/plugins/cache-array-share/jobs"
+chmod 0700 "/var/local/emhttp/plugins/cache-array-share/jobs"
 chmod 0755 "$PLUGIN_WEB/scripts/cache-array-share.php"
 
 echo ""
 echo "-----------------------------------------------------------"
-echo " Cache -> Array Share Control has been installed."
-echo " Open Settings -> User Utilities -> Cache -> Array Share Control."
-echo " Version: 2026.09.02a"
+echo " Cache / Array Share Control has been installed."
+echo " Open Settings -> User Utilities -> Cache / Array Share Control."
+echo " Version: 2026.09.07e"
 echo "-----------------------------------------------------------"
 echo ""
 ]]>
@@ -70,7 +111,7 @@ find "$PLUGIN_BOOT" -maxdepth 1 -type f -name 'cache-array-share-*.txz' -delete
 
 echo ""
 echo "-----------------------------------------------------------"
-echo " Cache -> Array Share Control has been removed."
+echo " Cache / Array Share Control has been removed."
 echo " Backups remain in $PLUGIN_BOOT/backups."
 echo "-----------------------------------------------------------"
 echo ""
