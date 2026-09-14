@@ -5,7 +5,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "cache-array-share">
 <!ENTITY author "Ray Munro">
-<!ENTITY version "2026.09.07e">
+<!ENTITY version "2026.09.14">
 <!ENTITY package "&name;-&version;-noarch-1.txz">
 <!ENTITY github "RayMunro/unraid-cache-array-share">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
@@ -19,6 +19,9 @@
 
 <CHANGES>
 <![CDATA[
+### 2026.09.14
+- Correct the copyright holder name shown on the page to Ray Munro.
+
 ### 2026.09.07e
 - Add a Force all selected Array-only button for one-click force selection.
 - Add a custom Cache / Array Share Control icon to the page and Plugin Manager.
@@ -94,7 +97,7 @@ echo ""
 echo "-----------------------------------------------------------"
 echo " Cache / Array Share Control has been installed."
 echo " Open Settings -> User Utilities -> Cache / Array Share Control."
-echo " Version: 2026.09.07e"
+echo " Version: 2026.09.14"
 echo "-----------------------------------------------------------"
 echo ""
 ]]>
