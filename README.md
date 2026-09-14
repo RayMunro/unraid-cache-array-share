@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/usr/local/emhttp/plugins/cache-array-share/icons/cache-array-share.png" width="160" alt="Cache / Array Share Control icon" />
+</p>
+
 # Cache / Array Share Control for Unraid
 
 An Unraid 6.12+ plugin that gives every user share three explicit, mutually exclusive tickboxes:
