@@ -1,6 +1,8 @@
 Menu="Utilities"
 Title="Cache / Array Share Control"
 Tag="cache-array-share.png"
+Icon="exchange"
+Type="xmenu"
 ---
 <?PHP
 // Copyright (c) 2026 Ray Munro
