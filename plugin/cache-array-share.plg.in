@@ -5,7 +5,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "cache-array-share">
 <!ENTITY author "Ray Munro">
-<!ENTITY version "2026.09.14b">
+<!ENTITY version "2026.09.14c">
 <!ENTITY package "&name;-&version;-noarch-1.txz">
 <!ENTITY github "RayMunro/unraid-cache-array-share">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
@@ -19,6 +19,9 @@
 
 <CHANGES>
 <![CDATA[
+### 2026.09.14c
+- Match the standard copyright wording ("...All rights reserved.") used across the other HackerHog plugins.
+
 ### 2026.09.14b
 - Add Icon/Type=xmenu to the page header so Settings -> User Utilities shows a real icon tile instead of the generic page icon.
 

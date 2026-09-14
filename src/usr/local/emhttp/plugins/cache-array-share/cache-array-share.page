@@ -32,7 +32,7 @@ $csrf = (string)($var['csrf_token'] ?? '');
   <div class="cas-card"><span id="cas-no-cache" class="cas-number">–</span><span class="cas-label">Already Array only</span></div>
 </div>
 
-<div class="cas-copyright">Copyright © Ray Munro 2026</div>
+<div class="cas-copyright">Copyright © Ray Munro 2026. All rights reserved.</div>
 
 <p>Tick one action for each share you want to change. <strong>Cache → Array</strong> writes new files to the chosen pool first. <strong>Cache only</strong> keeps new files on the chosen pool. <strong>Array only</strong> writes new files directly to the Array.</p>
 
