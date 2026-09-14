@@ -1,10 +1,10 @@
 <?xml version="1.0" standalone="yes"?>
 
-<!-- Copyright (c) 2026 Raymond Munro -->
+<!-- Copyright (c) 2026 Ray Munro -->
 
 <!DOCTYPE PLUGIN [
 <!ENTITY name "cache-array-share">
-<!ENTITY author "Raymond Munro">
+<!ENTITY author "Ray Munro">
 <!ENTITY version "2026.09.07e">
 <!ENTITY package "&name;-&version;-noarch-1.txz">
 <!ENTITY github "RayMunro/unraid-cache-array-share">
@@ -34,14 +34,14 @@
 - After Mover, copy authorised leftovers directly to /mnt/user0 with rsync
   and remove each pool file only after its copy succeeds.
 - Verify forced transfers before applying the final Array-only policy.
-- Display the Raymond Munro 2026 copyright in a prominent page banner.
+- Display the Ray Munro 2026 copyright in a prominent page banner.
 
 ### 2026.09.07b
 - Present Cache -> Array and Array only as two explicit per-share choices.
 - Exclude system-dependent shares from both Select all actions.
 - Detect the standard appdata, domains, system and isos shares plus custom
   shares referenced by Unraid Docker and VM configuration.
-- Add Copyright © Raymond Munro 2026 to the interface and source package.
+- Add Copyright © Ray Munro 2026 to the interface and source package.
 
 ### 2026.09.07a
 - Run Unraid Mover before applying Array-only to any selected share.

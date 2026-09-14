@@ -1,5 +1,5 @@
 <?php
-// Copyright (c) 2026 Raymond Munro
+// Copyright (c) 2026 Ray Munro
 declare(strict_types=1);
 
 final class CacheArrayShare

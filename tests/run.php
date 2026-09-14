@@ -62,7 +62,7 @@ $pageSource = (string)file_get_contents(__DIR__ . '/../src/usr/local/emhttp/plug
 check(str_contains($pageSource, '.cas-cache[data-bulk-selectable="1"]'), 'Cache to Array Select all excludes system-dependent shares');
 check(str_contains($pageSource, '.cas-cache-only[data-bulk-selectable="1"]'), 'Cache-only Select all excludes system-dependent shares');
 check(str_contains($pageSource, '.cas-no-cache[data-bulk-selectable="1"]'), 'Array-only Select all excludes system-dependent shares');
-check(str_contains($pageSource, 'Copyright © Raymond Munro 2026'), 'shows the requested copyright notice');
+check(str_contains($pageSource, 'Copyright © Ray Munro 2026'), 'shows the requested copyright notice');
 check(str_contains($pageSource, 'class="cas-copyright"'), 'makes the copyright notice a prominent banner');
 check(str_contains($pageSource, 'class="cas-force"'), 'shows a per-share Force remaining files option');
 check(str_contains($pageSource, 'id="cas-all-force"'), 'shows a Force all selected Array-only button');

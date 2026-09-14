@@ -77,6 +77,6 @@ php tests/run.php
 - Unavailable pools or files remaining after Mover prevent Array-only from being applied.
 - Forced transfers use the Array-only `/mnt/user0` path and are verified before the policy changes.
 
-Author: Raymond Munro  
-Copyright © Raymond Munro 2026  
+Author: Ray Munro  
+Copyright © Ray Munro 2026  
 License: GPL-3.0-or-later
