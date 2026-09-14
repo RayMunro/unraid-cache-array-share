@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 NAME="cache-array-share"
-VERSION="2026.09.14c"
+VERSION="2026.09.14d"
 BUILD="$ROOT/build"
 PACKAGE="$NAME-$VERSION-noarch-1.txz"
 
@@ -28,9 +28,10 @@ if base64 --help 2>&1 | grep -q -- '-w'; then
 else
   PAYLOAD="$(base64 -i "$BUILD/$PACKAGE")"
 fi
-awk -v payload="$PAYLOAD" '{
-  if ($0 == "@@PACKAGE_BASE64@@") print payload;
-  else print;
+awk -v payload="$PAYLOAD" -v version="$VERSION" '{
+  if ($0 == "@@PACKAGE_BASE64@@") { print payload; next }
+  gsub(/@@VERSION@@/, version);
+  print;
 }' "$ROOT/plugin/cache-array-share.plg.in" > "$ROOT/cache-array-share.plg"
 
 chmod 0644 "$ROOT/cache-array-share.plg"
